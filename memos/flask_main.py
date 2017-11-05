@@ -18,6 +18,7 @@ from flask import render_template
 from flask import request
 from flask import url_for
 
+import ast
 import json
 import logging
 
@@ -66,26 +67,41 @@ except:
     sys.exit(1)
 
 
-
 ###
 # Pages
 ###
-
 @app.route("/")
 @app.route("/index")
 def index():
-  app.logger.debug("Main page entry")
-  g.memos = get_memos()
-  for memo in g.memos: 
-      app.logger.debug("Memo: " + str(memo))
-  return flask.render_template('index.html')
+    app.logger.debug("Main page entry")
+    g.memos = get_memos()
+    for memo in g.memos:
+        app.logger.debug("Memo: " + str(memo))
+    return flask.render_template('index.html')
 
 
-# We don't have an interface for creating memos yet
-# @app.route("/create")
-# def create():
-#     app.logger.debug("Create")
-#     return flask.render_template('create.html')
+@app.route("/create")
+def create():
+    # TODO: Verify text length.
+    app.logger.debug("Create")
+    text = flask.request.args.get('text')
+    date = flask.request.args.get('date')
+    app.logger.debug("text: {} date: {}".format(text, date))
+    collection.insert_one({'type': 'dated_memo', 'date': date, 'text': text})
+    return flask.jsonify(result="true")
+
+
+@app.route("/remove")
+def remove():
+    app.logger.debug("Remove")
+    dates = flask.request.args.get('dates')
+    dates = ast.literal_eval(dates)
+    for date in dates:
+        date = date[:-9] + "Z"
+        if collection.find({'date': date}):
+            app.logger.debug("FOUND A MATCHING DATE IN DATABASE!!!")
+            collection.delete_one({'date': date})
+    return flask.jsonify(result='true')
 
 
 @app.errorhandler(404)
@@ -102,8 +118,8 @@ def page_not_found(error):
 #################
 
 
-@app.template_filter( 'humanize' )
-def humanize_arrow_date( date ):
+@app.template_filter('humanize')
+def humanize_arrow_date(date):
     """
     Date is internal UTC ISO format string.
     Output should be "today", "yesterday", "in 5 days", etc.
@@ -134,17 +150,29 @@ def get_memos():
     Returns all memos in the database, in a form that
     can be inserted directly in the 'session' object.
     """
-    records = [ ]
-    for record in collection.find( { "type": "dated_memo" } ):
+    records = []
+    for record in collection.find({"type": "dated_memo"}):
         record['date'] = arrow.get(record['date']).isoformat()
         del record['_id']
         records.append(record)
-    return records 
+    return sort_memos(records)
 
+
+def sort_memos(memos):
+    sorted_memos = memos
+    for i in range(len(memos)):
+        for j in range(1, len(memos)):
+            if sorted_memos[j]['date'] < sorted_memos[i]['date']:
+                temp = sorted_memos[i]
+                sorted_memos[i] = sorted_memos[j]
+                sorted_memos[j] = temp
+    return sorted_memos
+
+
+app.debug = CONFIG.DEBUG
+if app.debug:
+    app.logger.setLevel(logging.DEBUG)
 
 if __name__ == "__main__":
-    app.debug=CONFIG.DEBUG
-    app.logger.setLevel(logging.DEBUG)
-    app.run(port=CONFIG.PORT,host="0.0.0.0")
-
-    
+    print("Opening for global access on port {}".format(CONFIG.PORT))
+    app.run(port=CONFIG.PORT, host="0.0.0.0")

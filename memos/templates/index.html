@@ -2,61 +2,169 @@
 <html> <head>
 <title>Memos</title>
 
-  <!-- 'viewport' is used by bootstrap to respond to device size -->
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- 'viewport' is used by bootstrap to respond to device size -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Javascript:  JQuery from a content distribution network (CDN) -->
-  <script
+    <!-- Javascript:  JQuery from a content distribution network (CDN) -->
+    <script
      src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js">
-  </script>
+    </script>
 
-  <!-- Bootstrap includes javascript and css  (must follow jquery) -->
-  <link rel="stylesheet"
-   href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-   <script
+    <!-- Bootstrap includes javascript and css  (must follow jquery) -->
+    <link rel="stylesheet"
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+
+    <script
     src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js">
-</script>
+    </script>
 
-   <!-- Our own style sheet -->
-   <link rel="stylesheet" href="/static/css/memos.css" />
+    <!-- Our own style sheet -->
+    <link rel="stylesheet" href="/static/css/memos.css" />
 
+    <script type="text/javascript" src="/static/js/moment.js">
+    </script>
 
 </head>
 <body>
-<div class="container">
+    <!--<div class="alert alert-warning" id="warning" style="display: none">-->
+        <!--<strong>Oops, one or more fields are missing values</strong>-->
+    <!--</div>-->
+    <div class="container" style="height: 100%;">
+        {% if g.memos %}
+            <button type="button" id="delete_button" class="btn btn-outline-primary">Delete Selected Memos</button>
+        {% for memo in g.memos %}
+            <div class="memo">
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="card" style="width: 25rem">
+                        <p class="date" class="card-top">
+                            {{ memo.date|humanize }}
+                            <span class="input-group-addon">
+                                <input name="remove_memo" type="checkbox" aria-label="..." value="{{ memo.date }}">
+                            </span>
+                        </p>
+                        <div class="card-block">
+                            <p class="card-text">{{ memo.text }}</p>
+                        </div>
 
-<!-- Flashed messages before content -->
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul class=flashes>
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
+                    </div>
+                </div>
+            </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <!-- Signal empty database -->
+    {% endif%}
 
-<h1>Memos</h1>
+    <div class="row">
+        <div class="col-xs-6 text-center">
+            <form role="form" id="entry">
+            <input type=date name="entry_date" id="entry_date" value=""/>
+            <textarea id="entry_text" placeholder="write a new memo" maxlength="20000"></textarea>
+            <input type="submit" value="Create and Save">
+        </form>
+        </div>
+    </div>
+    </div>
 
-{% if g.memos %}
-    {% for memo in g.memos %}
-  <div class="memo">
-  <div class="row">
-  <div class="col-md-2">
-    {{ memo.date | humanize }}
-  </div>
-  <div class="col-md-10">
-    {{ memo.text }}
-  </div>
-  </div> <!-- row -->
-  </div> <!-- memo -->
-  {% endfor %}
-{% else %}
-  <p>No memos for you. </p>  
-{% endif %}
+    <script type="text/javascript">
+        $('#entry_date').val(getCurrentDate());
 
- 
+        let SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+        let CREATE_MEMO_URL = SCRIPT_ROOT + "/create";
+        let REMOVE_MEMO_URL = SCRIPT_ROOT + "/remove";
 
-</div> <!-- container -->
+        $("#entry").submit(function (event) {
+            event.preventDefault();
+            let txt = $("#entry_text").val();
+            let date = getCurrentTime()
+            if (txt === "" || date === "") {
+                displayStatus("Missing text or invalid date.");
+                return;
+            }
+            $.ajax({
+                url: CREATE_MEMO_URL,
+                data: { text: txt,
+                        date: date},
+                success: function (data) {
+                    console.log(data.result);
+                    resetTextarea();
+                    window.location.reload();
+                }
+            });
+        });
+
+        let checked_set = new Set([]) ;
+        $(".memo :checkbox").change(
+            function () {
+                if (this.checked) {
+                    console.log(this);
+                    checked_set.add($(this).val());
+                    console.log(checked_set);
+                } else {
+                    checked_set.delete($(this).val());
+                    console.log(checked_set)
+                }
+        });
+        
+        $("#delete_button").click(function (event) {
+            event.preventDefault();
+            let set_to_list = [];
+            for (let it = checked_set.values(), val = null; val = it.next().value;){
+                set_to_list.push(val);
+            }
+            console.log(JSON.stringify(set_to_list));
+            console.log(JSON.stringify(set_to_list).length);
+            $.ajax({
+            url: REMOVE_MEMO_URL,
+            data: { dates: JSON.stringify(set_to_list)},
+            success: function (data) {
+                console.log("Memos deleted successfully.");
+                checked_set.clear();
+                UncheckCheckbox();
+                window.location.reload();
+            }
+            });
+            console.log("Slipped " );
+        });
+
+        function displayStatus(msg) {
+            alert(msg);
+        }
+
+        function resetTextarea() {
+            $("#entry_text").val('');
+        }
+
+        function getCurrentDate() {
+            return moment(new Date()).format("YYYY-MM-DD");
+        }
+
+        function getCurrentTime() {
+            let entry_date = $("#entry_date").val();
+            if (moment(entry_date, "YYYY/MM/DD", true)) {
+                let date_list = entry_date.split('-').map(Number);
+                let t = new Date();
+                t.setFullYear(date_list[0], date_list[1]-1, date_list[2]);
+                console.log(t.toISOString());
+                return t.toISOString()
+            } else {
+                displayStatus("Invalid date format.")
+            }
+        }
+
+        function UncheckCheckbox() {
+            let w = document.getElementsByTagName('input');
+            for ( let i = 0; i < w.length; i++) {
+                if (w[i].type === 'checkbox') {
+                    w[i].checked = false;
+                }
+            }
+        }
+
+        $(document).ready(function () {
+            UncheckCheckbox();
+        })
+    </script>
 </body>
 </html>
