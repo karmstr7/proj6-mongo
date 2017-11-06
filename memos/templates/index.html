@@ -26,9 +26,6 @@
 
 </head>
 <body>
-    <!--<div class="alert alert-warning" id="warning" style="display: none">-->
-        <!--<strong>Oops, one or more fields are missing values</strong>-->
-    <!--</div>-->
     <div class="container" style="height: 100%;">
         {% if g.memos %}
             <button type="button" id="delete_button" class="btn btn-outline-primary">Delete Selected Memos</button>
@@ -68,17 +65,16 @@
     </div>
 
     <script type="text/javascript">
-        $('#entry_date').val(getCurrentDate());
-
+        $('#entry_date').val(getCurrentDate()); //initialize date to today.
         let SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
         let CREATE_MEMO_URL = SCRIPT_ROOT + "/create";
         let REMOVE_MEMO_URL = SCRIPT_ROOT + "/remove";
 
         $("#entry").submit(function (event) {
             event.preventDefault();
-            let txt = $("#entry_text").val();
-            let date = getCurrentTime()
-            if (txt === "" || date === "") {
+            let txt = $("#entry_text").val();   //grab memo message
+            let date = getCurrentTime();        //grab date entered
+            if (txt === "" || date === "") {    //if no memo message or date
                 displayStatus("Missing text or invalid date.");
                 return;
             }
@@ -86,85 +82,56 @@
                 url: CREATE_MEMO_URL,
                 data: { text: txt,
                         date: date},
-                success: function (data) {
-                    console.log(data.result);
-                    resetTextarea();
-                    window.location.reload();
+                success: function () {
+                    window.location.reload(true);   //clear cache then refresh page
                 }
             });
         });
 
-        let checked_set = new Set([]) ;
+        let checked_set = new Set([]) ;             //initialize empty set
+
+        //Records memos that have been checked, un-records memos that have been unchecked
         $(".memo :checkbox").change(
             function () {
                 if (this.checked) {
-                    console.log(this);
-                    checked_set.add($(this).val());
-                    console.log(checked_set);
+                    checked_set.add($(this).val()); //add a checked memo to checked_set
                 } else {
-                    checked_set.delete($(this).val());
-                    console.log(checked_set)
+                    checked_set.delete($(this).val());  //remove an unchecked memo from checked_set
                 }
         });
-        
+
+        //Send the set of checked memos to Flask, so they can be deleted from database.
         $("#delete_button").click(function (event) {
             event.preventDefault();
-            let set_to_list = [];
+            let set_to_list = [];                   //convert set to list so it's jsonify-able
             for (let it = checked_set.values(), val = null; val = it.next().value;){
                 set_to_list.push(val);
             }
-            console.log(JSON.stringify(set_to_list));
-            console.log(JSON.stringify(set_to_list).length);
             $.ajax({
             url: REMOVE_MEMO_URL,
             data: { dates: JSON.stringify(set_to_list)},
-            success: function (data) {
-                console.log("Memos deleted successfully.");
-                checked_set.clear();
-                UncheckCheckbox();
-                window.location.reload();
+            success: function () {
+                window.location.reload(true);       //clear cache then refresh page
             }
             });
-            console.log("Slipped " );
         });
-
         function displayStatus(msg) {
             alert(msg);
         }
-
-        function resetTextarea() {
-            $("#entry_text").val('');
-        }
-
         function getCurrentDate() {
             return moment(new Date()).format("YYYY-MM-DD");
         }
-
         function getCurrentTime() {
             let entry_date = $("#entry_date").val();
             if (moment(entry_date, "YYYY/MM/DD", true)) {
                 let date_list = entry_date.split('-').map(Number);
                 let t = new Date();
                 t.setFullYear(date_list[0], date_list[1]-1, date_list[2]);
-                console.log(t.toISOString());
                 return t.toISOString()
             } else {
                 displayStatus("Invalid date format.")
             }
         }
-
-        function UncheckCheckbox() {
-            let w = document.getElementsByTagName('input');
-            for ( let i = 0; i < w.length; i++) {
-                if (w[i].type === 'checkbox') {
-                    w[i].checked = false;
-                }
-            }
-        }
-
-        $(document).ready(function () {
-            UncheckCheckbox();
-        })
     </script>
 </body>
 </html>
