@@ -34,12 +34,12 @@
 }
 
 .memo {
-    top: 25%;
+    top: 10%;
     position: relative;
     left: 9%;
     height: 250px;
     width: 250px;
-    margin: -100px 0 0 0;
+    margin: 0 0 10px 0;
 }
 
 #delete_button {
@@ -47,8 +47,6 @@
     position: fixed;
     left: 40%;
     margin: -100px 0 0 0;
-    height: 50px;
-    width: 200px;
     outline: none;
 
 }
@@ -80,19 +78,20 @@
     background-color: #fff;
     border: 1px solid rgba(0, 0, 0, 0.125);
     border-radius: 0.25rem;
+    height: 250px;
+    width: 250px;
 }
 
 .card-top {
     border-top-right-radius: calc(0.25rem - 1px);
     border-top-left-radius: calc(0.25rem - 1px);
-    background-color: #5bc0de;
 }
 
 .card .date{
     text-transform: uppercase;
     border-top-right-radius: calc(0.25rem - 1px);
     border-top-left-radius: calc(0.25rem - 1px);
-    background-color: #3A7734;
+    background-color: #5bc0de;
 }
 .card-block {
     -webkit-box-flex: 1;

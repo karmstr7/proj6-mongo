@@ -13,20 +13,17 @@ Representation conventions for dates:
 
 import flask
 from flask import g
-from flask import render_template
 from flask import request
 from flask import url_for
 
+import uuid
 import ast
-import json
 import logging
 
 import sys
 
 # Date handling
 import arrow
-from dateutil import tz  # For interpreting local times
-
 # Mongo database
 from pymongo import MongoClient
 
@@ -65,6 +62,8 @@ except:
     print("Failure opening database.  Is Mongo running? Correct password?")
     sys.exit(1)
 
+TEXT_MAX_LENGTH = 250
+
 
 ###
 # Pages
@@ -81,26 +80,31 @@ def index():
 
 @app.route("/create")
 def create():
-    # TODO: Verify text length.
     app.logger.debug("Create")
     text = flask.request.args.get('text')
     date = flask.request.args.get('date')
-    app.logger.debug("text: {} date: {}".format(text, date))
-    collection.insert_one({'type': 'dated_memo', 'date': date, 'text': text})
-    return flask.jsonify(result="true")
+    if len(text) > TEXT_MAX_LENGTH:
+        rslt = 'error'
+    else:
+        app.logger.debug("text: {} date: {}".format(text, date))
+        collection.insert_one({'type': 'dated_memo', 'date': date, 'text': text, 'token': make_token()})
+        rslt = 'OK'
+    return flask.jsonify(result=rslt)
 
 
 @app.route("/remove")
 def remove():
+    """
+    Delete a list of memos.
+    :return: JSON
+    """
     app.logger.debug("Remove")
-    dates = flask.request.args.get('dates')
-    dates = ast.literal_eval(dates)
-    for date in dates:
-        date = date[:-9] + "Z"
-        if collection.find({'date': date}):
-            app.logger.debug("FOUND A MATCHING DATE IN DATABASE!!!")
-            collection.delete_one({'date': date})
-    return flask.jsonify(result='true')
+    tokens = flask.request.args.get('tokens')
+    tokens = ast.literal_eval(tokens)
+    for token in tokens:
+        if collection.find({'token': token}):
+            collection.delete_one({'token': token})
+    return flask.jsonify(result='OK')
 
 
 @app.errorhandler(404)
@@ -158,14 +162,30 @@ def get_memos():
 
 
 def sort_memos(memos):
-    sorted_memos = memos
-    for i in range(len(memos)):
-        for j in range(1, len(memos)):
-            if sorted_memos[j]['date'] < sorted_memos[i]['date']:
-                temp = sorted_memos[i]
-                sorted_memos[i] = sorted_memos[j]
-                sorted_memos[j] = temp
-    return sorted_memos
+    """
+    Bubble sort the memos into chronological order.
+    :param memos: list
+    :return: list/string
+    """
+    try:
+        for i in range(len(memos)-1):
+            for j in range(i+1, len(memos)):
+                if memos[j]['date'] < memos[i]['date']:
+                    temp = memos[i]
+                    memos[i] = memos[j]
+                    memos[j] = temp
+    except:
+        return 'Error'
+    return memos
+
+
+def make_token():
+    """
+    Create a (pseudo)random string UUID object using UUID.
+    :return: An UUID object that's been converted to type string.
+    """
+    token = str(uuid.uuid4())
+    return token
 
 
 app.debug = CONFIG.DEBUG

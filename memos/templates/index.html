@@ -32,21 +32,17 @@
             <button type="button" id="delete_button" class="btn btn-outline-primary">Delete Selected Memos</button>
         {% for memo in g.memos %}
             <div class="memo">
-            <div class="row">
-                <div class="col-md-2">
-                    <div class="card" style="width: 25rem">
-                        <p class="date" class="card-top">
-                            {{ memo.date|humanize }}
-                            <span class="input-group-addon">
-                                <input name="remove_memo" type="checkbox" aria-label="..." value="{{ memo.date }}">
-                            </span>
-                        </p>
-                        <div class="card-block">
-                            <p class="card-text">{{ memo.text }}</p>
-                        </div>
+                <div class="card" style="width: 25rem">
+                    <p class="date" class="card-top">
+                        {{ memo.date|humanize }}
+                        <span class="input-group-addon">
+                            <input name="remove_memo" type="checkbox" aria-label="..." value="{{ memo.token }}">
+                        </span>
+                    </p>
+                    <div class="card-block">
+                        <p class="card-text">{{ memo.text }}</p>
                     </div>
                 </div>
-            </div>
             </div>
         {% endfor %}
         {% else %}
@@ -58,7 +54,7 @@
 
         <form role="form" id="entry">
             <input type=date name="entry_date" id="entry_date" value=""/>
-                <textarea id="entry_text" placeholder="write a new memo" maxlength="20000"></textarea>
+                <textarea id="entry_text" placeholder="write a new memo" maxlength="250"></textarea>
             <input type="submit" value="Create and Save">
         </form>
 
@@ -82,7 +78,10 @@
                 url: CREATE_MEMO_URL,
                 data: { text: txt,
                         date: date},
-                success: function () {
+                success: function (data) {
+                    if (data.result === 'error') {
+                        displayStatus('Memo is too long, keep it under 20000.');
+                    }
                     window.location.reload(true);   //clear cache then refresh page
                 }
             });
@@ -109,7 +108,7 @@
             }
             $.ajax({
             url: REMOVE_MEMO_URL,
-            data: { dates: JSON.stringify(set_to_list)},
+            data: { tokens: JSON.stringify(set_to_list)},
             success: function () {
                 window.location.reload(true);       //clear cache then refresh page
             }
