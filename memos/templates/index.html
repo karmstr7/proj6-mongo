@@ -1,6 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
-<html> <head>
-<title>Memos</title>
+<html>
+<head>
+    <title>Memos</title>
 
     <!-- 'viewport' is used by bootstrap to respond to device size -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,7 +27,7 @@
 
 </head>
 <body>
-    <div class="container" style="height: 100%;">
+    <div class="container-fluid" style="height: 100%;">
         {% if g.memos %}
             <button type="button" id="delete_button" class="btn btn-outline-primary">Delete Selected Memos</button>
         {% for memo in g.memos %}
@@ -43,25 +44,24 @@
                         <div class="card-block">
                             <p class="card-text">{{ memo.text }}</p>
                         </div>
-
                     </div>
                 </div>
             </div>
             </div>
         {% endfor %}
-    {% else %}
-        <!-- Signal empty database -->
-    {% endif%}
+        {% else %}
+            <div class="empty">
+                <p>You've got no memos yet. Create one now.</p>
+            </div>
+        {% endif%}
 
-    <div class="row">
-        <div class="col-xs-6 text-center">
-            <form role="form" id="entry">
+
+        <form role="form" id="entry">
             <input type=date name="entry_date" id="entry_date" value=""/>
-            <textarea id="entry_text" placeholder="write a new memo" maxlength="20000"></textarea>
+                <textarea id="entry_text" placeholder="write a new memo" maxlength="20000"></textarea>
             <input type="submit" value="Create and Save">
         </form>
-        </div>
-    </div>
+
     </div>
 
     <script type="text/javascript">

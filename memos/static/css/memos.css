@@ -36,21 +36,34 @@
 .memo {
     top: 25%;
     position: relative;
-    left: 10%;
+    left: 9%;
     height: 250px;
     width: 250px;
     margin: -100px 0 0 0;
 }
 
 #delete_button {
-    top: 18%;
-    position: relative;
-    left: 13%;
+    top: 25%;
+    position: fixed;
+    left: 40%;
     margin: -100px 0 0 0;
+    height: 50px;
+    width: 200px;
+    outline: none;
+
 }
 
 .container {
     height: 100%;
+}
+
+#empty_memos {
+    top: 25%;
+    position: relative;
+    left: 10%;
+    height: 250px;
+    width: 250px;
+    margin: -100px 0 0 0;
 }
 
 .card {
